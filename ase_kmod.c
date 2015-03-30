@@ -5,27 +5,18 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A kernel module which monitors the execution time of a task on the different cores of a processor.");
 
 static struct proc_dir_entry *proc_folder;
-int test(struct file *file, const char __user *x, size_t size, loff_t *data){
-	/* get buffer size */
-	procfs_buffer_size = count;
-	if (procfs_buffer_size > PROCFS_MAX_SIZE ) {
-		procfs_buffer_size = PROCFS_MAX_SIZE;
-	}
+int test(struct file *file, const char *data, size_t size, loff_t *offset){
+  printk(KERN_EMERG MOD_NAME "Passage dans la fonction de write.\n");    
 
-	/* write data to the buffer */
-	if ( copy_from_user(procfs_buffer, buffer, procfs_buffer_size) ) {
-		return -EFAULT;
-	}
-
-	return procfs_buffer_size;
+  return size;
 }
 
 static const struct file_operations ase_fops = {
 	.owner = THIS_MODULE,
-	.open = NULL,
+	/* .open = NULL, */
 	/* .read = seq_read, */
 	/* .llseek = seq_lseek, */
-	.release = single_release,
+	/* .release = single_release, */
 	.write = test,
 };
 
