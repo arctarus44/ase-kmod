@@ -5,20 +5,24 @@ MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A kernel module which monitors the execution time of a task on the different cores of a processor.");
 
 static struct proc_dir_entry *proc_folder;
-int test(struct file *file, const char *data, size_t size, loff_t *offset){
-  printk(KERN_EMERG MOD_NAME "Passage dans la fonction de write.\n");    
 
-  return size;
+static int ase_cmd_show(struct seq_file *m, void *v){
+	seq_printf(m, "lolilol\n");
+	return 0;
 }
 
 static const struct file_operations ase_fops = {
 	.owner = THIS_MODULE,
-	/* .open = NULL, */
-	/* .read = seq_read, */
-	/* .llseek = seq_lseek, */
-	/* .release = single_release, */
-	.write = test,
+	.open = ase_cmd_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+	.write = NULL,
 };
+
+static int ase_cmd_open(struct inode *inode, struct file *file){
+	return single_open(file, ase_cmd_show, NULL);
+}
 
 
 int ase_kmod_init(void){
