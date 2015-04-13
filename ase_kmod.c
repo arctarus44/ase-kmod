@@ -21,14 +21,10 @@ static int init_track_pid(struct file *file, const char *data, size_t size, loff
  * Structure définisant les actions sur le fichier PROC_ENTRY du répertoire.
  * Le fichiers ase_cmd doit seulement être écrit.
  */
-static const struct file_operations ase_cmd = {
+static const struct file_operations ase_pid = {
     .owner = THIS_MODULE,
     .open = ase_cmd_open,
     .read = seq_read,
-    .write = init_track_pid,
-    /* Nécessaires ? */
-    .llseek = seq_lseek,
-    .release = single_release,
 };
 
 /*
@@ -36,14 +32,9 @@ static const struct file_operations ase_cmd = {
  * PROC_DIR. Ces fichiers ne doivent être que lu.
  * TODO : modifier le champ read avec la bonne fonction.
  */
-static const struct file_operations ase_pid = {
+static const struct file_operations ase_cmd = {
     .owner = THIS_MODULE,
-    .open = NULL,
-    .read = NULL,
     .write = init_track_pid,
-    /* Nécessaires ? */
-    .llseek = seq_lseek,
-    .release = single_release,
 };
 
 static struct proc_dir_entry *proc_folder;
