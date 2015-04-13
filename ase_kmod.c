@@ -60,7 +60,11 @@ static int ase_cmd_open(struct inode *inode, struct file *file){
 }
 
 
-
+/*
+ * Vérifie que le pid passé est bien un nombre et recherche un processus correspondant.
+ * Si trouvé, créé un fichier du nom de ce PID dans le répertoire /proc/ase/
+ * après avoir vérifié si celui-ci n'existe pas déjà.
+ */
 static void add_pid_action(const char *pid_str){
 	long pid;
 	struct pid *pid_struct;
@@ -106,6 +110,9 @@ static int init_track_pid(struct file *file, const char __user *buff, size_t siz
 	return size;
 }
 
+/*
+ * Initialisation du module, créé les fichiers/répertoires nécessaires
+ */
 int ase_kmod_init(void){
 	proc_folder = proc_mkdir(PROC_DIR, NULL);
 	printk(KERN_EMERG MOD_NAME LOG_INIT);
@@ -113,6 +120,9 @@ int ase_kmod_init(void){
 	return 0;
 }
 
+/* 
+ * Retrait du module, suppression des fichiers correspondants.
+ */
 void ase_kmod_cleanup(void){
   /* Supprimer proprement le répertoire. */
 	remove_proc_entry(PROC_DIR, NULL);
