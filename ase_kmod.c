@@ -34,11 +34,12 @@ static const struct file_operations ase_cmd = {
 /*
  * Structure définisant les actions sur les fichiers PID  du répertoire
  * PROC_DIR. Ces fichiers ne doivent être que lu.
+ * TODO : modifier le champ read avec la bonne fonction.
  */
 static const struct file_operations ase_pid = {
     .owner = THIS_MODULE,
-    .open = ase_cmd_open,
-    .read = seq_read,
+    .open = NULL,
+    .read = NULL,
     .write = init_track_pid,
     /* Nécessaires ? */
     .llseek = seq_lseek,
@@ -93,7 +94,7 @@ static void add_pid_action(const char *pid_str){
     if((pid_struct = find_get_pid(pid)) != NULL){
 	printk(KERN_EMERG MOD_NAME LOG_ADD_PID);
 	/* TODO : avant de créer un fichier proc, vérifier que celui-ci n'existe pas déjà */
-	proc_create(pid_str, 0644, proc_folder, &ase_cmd);
+	proc_create(pid_str, 0644, proc_folder, &ase_pid);
 	pid_array[pid_count] = pid_struct;
 	pid_count++;
     }
