@@ -122,10 +122,11 @@ int ase_kmod_init(void){
 
 /* 
  * Retrait du module, suppression des fichiers correspondants.
+ * Le répertoire est supprimé 'proprement'
+ * i.e : en cascade
  */
 void ase_kmod_cleanup(void){
-  /* Supprimer proprement le répertoire. */
-	remove_proc_entry(PROC_DIR, NULL);
+  remove_proc_subtree(PROC_DIR, NULL);
 	remove_proc_entry(PROC_ENTRY, NULL);
 	printk(KERN_EMERG MOD_NAME LOG_CLEAN);
 }
