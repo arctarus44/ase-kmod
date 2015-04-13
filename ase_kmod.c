@@ -67,6 +67,7 @@ static int ase_cmd_open(struct inode *inode, struct file *file){
  */
 static void add_pid_action(const char *pid_str){
     long pid;
+    int i;
     struct pid *pid_struct;
 
     printk(KERN_EMERG MOD_NAME " Entering the add_pid_action function.\n");
@@ -80,7 +81,17 @@ static void add_pid_action(const char *pid_str){
     }
     if((pid_struct = find_get_pid(pid)) != NULL){
 	printk(KERN_EMERG MOD_NAME LOG_ADD_PID);
-	/* TODO : avant de créer un fichier proc, vérifier que celui-ci n'existe pas déjà */
+
+	/* On vérifie que le fichier n'existe pas avant de le créer. */
+	for(i = 0 ; i < pid_count ; i++)
+	    {
+		/* Warning si il existe. */
+		if((long int)(pid_array[i]->numbers[0].nr) == pid)
+		    {
+			printk(KERN_EMERG MOD_NAME " Proc file already exists.\n");
+			return;
+		    }
+	    }
 	proc_create(pid_str, 0644, proc_folder, &ase_fops);
 	pid_array[pid_count] = pid_struct;
 	pid_count++;
