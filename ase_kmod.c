@@ -17,13 +17,25 @@ static int init_track_pid(struct file *file, const char *data, size_t size, loff
 /* Variables globales */
 /**********************/
 
-/* 
- * TODO : créer une 2e structure, une pour le fichier ase_cmd, une pour les
- * fichiers créés dans ase/
- * Les fichiers de /proc/ase : doivent à priori seulement être lus
+/*
+ * Structure définisant les actions sur le fichier PROC_ENTRY du répertoire.
  * Le fichiers ase_cmd doit seulement être écrit.
  */
-static const struct file_operations ase_fops = {
+static const struct file_operations ase_cmd = {
+    .owner = THIS_MODULE,
+    .open = ase_cmd_open,
+    .read = seq_read,
+    .write = init_track_pid,
+    /* Nécessaires ? */
+    .llseek = seq_lseek,
+    .release = single_release,
+};
+
+/*
+ * Structure définisant les actions sur les fichiers PID  du répertoire
+ * PROC_DIR. Ces fichiers ne doivent être que lu.
+ */
+static const struct file_operations ase_pid = {
     .owner = THIS_MODULE,
     .open = ase_cmd_open,
     .read = seq_read,
@@ -44,7 +56,7 @@ static struct pid *pid_array[MAX_PID_HANDLE];
 
 /*
  * A quoi ça sert?
- */ 
+ */
 static int ase_cmd_show(struct seq_file *m, void *v){
     seq_printf(m, "lolilol\n");
     return 0;
@@ -81,7 +93,7 @@ static void add_pid_action(const char *pid_str){
     if((pid_struct = find_get_pid(pid)) != NULL){
 	printk(KERN_EMERG MOD_NAME LOG_ADD_PID);
 	/* TODO : avant de créer un fichier proc, vérifier que celui-ci n'existe pas déjà */
-	proc_create(pid_str, 0644, proc_folder, &ase_fops);
+	proc_create(pid_str, 0644, proc_folder, &ase_cmd);
 	pid_array[pid_count] = pid_struct;
 	pid_count++;
     }
@@ -117,12 +129,12 @@ int ase_kmod_init(void){
     printk(KERN_EMERG MOD_NAME LOG_INIT);
 
     proc_folder = proc_mkdir(PROC_DIR, NULL);
-    proc_create(PROC_ENTRY, 0644, NULL, &ase_fops);
+    proc_create(PROC_ENTRY, 0644, NULL, &ase_cmd);
 
     return 0;
 }
 
-/* 
+/*
  * Retrait du module, suppression des fichiers correspondants.
  * Le répertoire est supprimé 'proprement'
  * i.e : en cascade
