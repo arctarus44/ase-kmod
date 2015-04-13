@@ -17,13 +17,20 @@ static int init_track_pid(struct file *file, const char *data, size_t size, loff
 /* Variables globales */
 /**********************/
 
+/* 
+ * TODO : créer une 2e structure, une pour le fichier ase_cmd, une pour les
+ * fichiers créés dans ase/
+ * Les fichiers de /proc/ase : doivent à priori seulement être lus
+ * Le fichiers ase_cmd doit seulement être écrit.
+ */
 static const struct file_operations ase_fops = {
 	.owner = THIS_MODULE,
 	.open = ase_cmd_open,
 	.read = seq_read,
+	.write = init_track_pid,
+	/* Nécessaires ? */
 	.llseek = seq_lseek,
 	.release = single_release,
-	.write = init_track_pid,
 };
 
 static struct proc_dir_entry *proc_folder;
@@ -35,14 +42,24 @@ static struct pid *pid_array[MAX_PID_HANDLE];
 /* Fonctions */
 /*************/
 
+/*
+ * A quoi ça sert?
+ */ 
 static int ase_cmd_show(struct seq_file *m, void *v){
 	seq_printf(m, "lolilol\n");
 	return 0;
 }
 
+/*
+ * Fonction associé à l'affichage d'un fichier du répertoire /proc/ase/
+ * Doit afficher des informations sur le processus qu'il représente.
+ */
 static int ase_cmd_open(struct inode *inode, struct file *file){
+  /* Pourquoi ? */
 	return single_open(file, ase_cmd_show, NULL);
 }
+
+
 
 static void add_pid_action(const char *pid_str){
 	long pid;
@@ -59,6 +76,7 @@ static void add_pid_action(const char *pid_str){
 	}
 	if((pid_struct = find_get_pid(pid)) != NULL){
 		printk(KERN_EMERG MOD_NAME LOG_ADD_PID);
+		/* TODO : avant de créer un fichier proc, vérifier que celui-ci n'existe pas déjà */
 		proc_create(pid_str, 0644, proc_folder, &ase_fops);
 		pid_array[pid_count] = pid_struct;
 		pid_count++;
@@ -71,7 +89,9 @@ static void add_pid_action(const char *pid_str){
 static int init_track_pid(struct file *file, const char __user *buff, size_t size, loff_t *data){
 	char *tmp = kmalloc(sizeof(char) * size, GFP_KERNEL);
 	int i;
+
 	printk(KERN_EMERG MOD_NAME LOG_INIT_TRACK);
+
 	if (size > (MOD_BUF_LEN - 1)) {
 		printk(KERN_EMERG MOD_NAME " Message trop grand.\n");
 		return -EINVAL;
@@ -94,6 +114,7 @@ int ase_kmod_init(void){
 }
 
 void ase_kmod_cleanup(void){
+  /* Supprimer proprement le répertoire. */
 	remove_proc_entry(PROC_DIR, NULL);
 	remove_proc_entry(PROC_ENTRY, NULL);
 	printk(KERN_EMERG MOD_NAME LOG_CLEAN);
