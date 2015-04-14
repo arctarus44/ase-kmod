@@ -8,9 +8,11 @@ MODULE_DESCRIPTION("A kernel module which monitors the execution time of a task 
 /* Prototypes */
 /**************/
 
-static int ase_cmd_open(struct inode *inode, struct file *file);
-static int ase_cmd_show(struct seq_file *m, void *v);
+static int ase_pid_open(struct inode *inode, struct file *file);
+static int ase_pid_show(struct seq_file *m, void *v);
 static int init_track_pid(struct file *file, const char *data, size_t size, loff_t *offset);
+
+long current_pid;
 
 
 /**********************/
@@ -25,6 +27,8 @@ static const struct file_operations ase_pid = {
 	.owner = THIS_MODULE,
 	.open = ase_pid_open,
 	.read = seq_read,
+	/* .llseek = seq_lseek, */
+	/* .release = single_release, */
 };
 
 /*
@@ -35,6 +39,8 @@ static const struct file_operations ase_pid = {
 static const struct file_operations ase_cmd = {
 	.owner = THIS_MODULE,
 	.write = init_track_pid,
+	/* .read = seq_read, */
+	/* .llseek = seq_lseek, */
 };
 
 static struct proc_dir_entry *proc_folder;
@@ -49,8 +55,8 @@ static struct pid *pid_array[MAX_PID_HANDLE];
 /*
  * A quoi ça sert?
  */
-static int ase_cmd_show(struct seq_file *m, void *v){
-	seq_printf(m, "lolilol\n");
+static int ase_pid_show(struct seq_file *m, void *v){
+	seq_printf(m, "lolilol %ld\n", current_pid);
 	return 0;
 }
 
@@ -61,8 +67,15 @@ static int ase_cmd_show(struct seq_file *m, void *v){
 static int ase_pid_open(struct inode *inode, struct file *file){
 	/* Pourquoi ? */
 	/* Parce que  */
-	printk(KERN_EMERG MOD_NAME file->);
-	return single_open(file, ase_cmd_show, NULL);
+	switch(kstrtol(file->f_path.dentry->d_iname, 10, &current_pid)){
+	case -ERANGE:
+		printk(KERN_EMERG MOD_NAME ERR_INIT_OVERFLOW);
+		return -ERANGE;
+	case -EINVAL:
+		printk(KERN_EMERG MOD_NAME ERR_INIT_NOT_INT);
+		return -EINVAL;
+	}
+	return single_open(file, ase_pid_show, NULL);
 }
 
 
