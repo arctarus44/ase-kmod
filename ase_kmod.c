@@ -65,8 +65,6 @@ static int ase_pid_show(struct seq_file *m, void *v){
  * Doit afficher des informations sur le processus qu'il représente.
  */
 static int ase_pid_open(struct inode *inode, struct file *file){
-	/* Pourquoi ? */
-	/* Parce que  */
 	switch(kstrtol(file->f_path.dentry->d_iname, 10, &current_pid)){
 	case -ERANGE:
 		printk(KERN_EMERG MOD_NAME ERR_INIT_OVERFLOW);
@@ -75,6 +73,7 @@ static int ase_pid_open(struct inode *inode, struct file *file){
 		printk(KERN_EMERG MOD_NAME ERR_INIT_NOT_INT);
 		return -EINVAL;
 	}
+
 	return single_open(file, ase_pid_show, NULL);
 }
 
