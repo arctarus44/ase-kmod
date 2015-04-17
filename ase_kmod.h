@@ -28,6 +28,8 @@
 #define ERR_INIT_NOT_INT " Error during string to int conversion.\n"
 #define ERR_INIT_NOT_PID " The value does not match any PID.\n"
 
+#define PID_FILE_HEADER "**** PID %ld stats ****\n"
+
 
 
 #endif

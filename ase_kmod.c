@@ -1,5 +1,10 @@
 #include "ase_kmod.h"
 
+#define DEBUG(message)											\
+	#ifdef DEBUG												\
+	printk(KERN_DEBUG MOD_NAME message)						\
+	#endif														\
+
 MODULE_AUTHOR("Jean-Serge Monbailly - Arthur Dewarumez. Les RoxXoR !");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("A kernel module which monitors the execution time of a task on the different cores of a processor.");
@@ -7,45 +12,36 @@ MODULE_DESCRIPTION("A kernel module which monitors the execution time of a task 
 /**************/
 /* Prototypes */
 /**************/
-
 static int ase_pid_open(struct inode *inode, struct file *file);
 static int ase_pid_show(struct seq_file *m, void *v);
 static int init_track_pid(struct file *file, const char *data, size_t size, loff_t *offset);
 
-long current_pid;
-
-
 /**********************/
 /* Variables globales */
 /**********************/
+long current_pid;
+static struct proc_dir_entry *proc_folder;
+static int pid_count = 0;
+static struct pid *pid_array[MAX_PID_HANDLE];
 
 /*
  * Structure définisant les actions sur le fichier PROC_ENTRY du répertoire.
- * Le fichiers ase_cmd doit seulement être écrit.
+ * Les fichiers du répertoire ase doivent seulement être lu.
  */
 static const struct file_operations ase_pid = {
 	.owner = THIS_MODULE,
 	.open = ase_pid_open,
 	.read = seq_read,
-	/* .llseek = seq_lseek, */
-	/* .release = single_release, */
 };
 
 /*
- * Structure définisant les actions sur les fichiers PID  du répertoire
- * PROC_DIR. Ces fichiers ne doivent être que lu.
- * TODO : modifier le champ read avec la bonne fonction.
+ * Structure définisant les actions sur le fichier ase_cmd.
+ * Ce fichier doit seulement être écrit..
  */
 static const struct file_operations ase_cmd = {
 	.owner = THIS_MODULE,
 	.write = init_track_pid,
-	/* .read = seq_read, */
-	/* .llseek = seq_lseek, */
 };
-
-static struct proc_dir_entry *proc_folder;
-static int pid_count = 0;
-static struct pid *pid_array[MAX_PID_HANDLE];
 
 
 /*************/
@@ -53,10 +49,11 @@ static struct pid *pid_array[MAX_PID_HANDLE];
 /*************/
 
 /*
- * A quoi ça sert?
+ * Fonction déterminant l'affichage d'un fichier du répertoire ase/
  */
 static int ase_pid_show(struct seq_file *m, void *v){
-	seq_printf(m, "lolilol %ld\n", current_pid);
+	debug(" entering ase_pid_show\n");
+	seq_printf(m, PID_FILE_HEADER, current_pid);
 	return 0;
 }
 
@@ -65,14 +62,13 @@ static int ase_pid_show(struct seq_file *m, void *v){
  * Doit afficher des informations sur le processus qu'il représente.
  */
 static int ase_pid_open(struct inode *inode, struct file *file){
-	/* Pourquoi ? */
-	/* Parce que  */
+	/* On récupère le pid du fichier sur lequel on travaille */
 	switch(kstrtol(file->f_path.dentry->d_iname, 10, &current_pid)){
 	case -ERANGE:
-		printk(KERN_EMERG MOD_NAME ERR_INIT_OVERFLOW);
+		printk(KERN_ERR MOD_NAME ERR_INIT_OVERFLOW);
 		return -ERANGE;
 	case -EINVAL:
-		printk(KERN_EMERG MOD_NAME ERR_INIT_NOT_INT);
+		printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
 		return -EINVAL;
 	}
 	return single_open(file, ase_pid_show, NULL);
@@ -89,17 +85,21 @@ static void add_pid_action(const char *pid_str){
 	int i;
 	struct pid *pid_struct;
 
-	printk(KERN_EMERG MOD_NAME " Entering the add_pid_action function.\n");
+	debug(" Entering the add_pid_action function.\n");
+
+	/* On vérifie que la valeur écrite est bien un nombre */
 	switch(kstrtol(pid_str, 10, &pid)){
 	case -ERANGE:
-		printk(KERN_EMERG MOD_NAME ERR_INIT_OVERFLOW);
+		printk(KERN_ERR MOD_NAME ERR_INIT_OVERFLOW);
 		return ;
 	case -EINVAL:
-		printk(KERN_EMERG MOD_NAME ERR_INIT_NOT_INT);
+		printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
 		return ;
 	}
+
+	/* On cherche un processus correspondant à ce PID */
 	if((pid_struct = find_get_pid(pid)) != NULL){
-		printk(KERN_EMERG MOD_NAME LOG_ADD_PID);
+		debug(LOG_ADD_PID);
 
 		/* On vérifie que le fichier n'existe pas avant de le créer. */
 		for(i = 0 ; i < pid_count ; i++)
@@ -107,7 +107,7 @@ static void add_pid_action(const char *pid_str){
 				/* Warning si il existe. */
 				if((long int)(pid_array[i]->numbers[0].nr) == pid)
 					{
-						printk(KERN_EMERG MOD_NAME " Proc file already exists.\n");
+						printk(KERN_WARNING MOD_NAME " Proc file already exists.\n");
 						return;
 					}
 			}
@@ -117,18 +117,23 @@ static void add_pid_action(const char *pid_str){
 		pid_count++;
 	}
 	else{
-		printk(KERN_EMERG MOD_NAME ERR_INIT_NOT_PID);
+		printk(KERN_ERR MOD_NAME ERR_INIT_NOT_PID);
 	}
 }
 
+/*
+ * Cette fonction est appelée lors d'une écriture dans le fichier ase_cmd.
+ * Cette fonction récupère le texte écrit et appelle la fonction add_pid_action
+ * pour la traiter
+ */
 static int init_track_pid(struct file *file, const char __user *buff, size_t size, loff_t *data){
 	char *tmp = kmalloc(sizeof(char) * size, GFP_KERNEL);
 	int i;
 
-	printk(KERN_EMERG MOD_NAME LOG_INIT_TRACK);
+	debug(LOG_INIT_TRACK);
 
 	if (size > (MOD_BUF_LEN - 1)) {
-		printk(KERN_EMERG MOD_NAME " Message trop grand.\n");
+		printk(KERN_ERR MOD_NAME " Message trop grand.\n");
 		return -EINVAL;
 	}
 	for(i = 0; i < size-1; i++){
@@ -145,11 +150,10 @@ static int init_track_pid(struct file *file, const char __user *buff, size_t siz
  * Initialisation du module, créé les fichiers/répertoires nécessaires
  */
 int ase_kmod_init(void){
-	printk(KERN_EMERG MOD_NAME LOG_INIT);
+	debug(LOG_INIT);
 
 	proc_folder = proc_mkdir(PROC_DIR, NULL);
 	proc_create(PROC_ENTRY, 0644, NULL, &ase_cmd);
-
 	return 0;
 }
 
@@ -163,7 +167,7 @@ void ase_kmod_cleanup(void){
 	remove_proc_subtree(PROC_DIR, NULL);
 	remove_proc_entry(PROC_ENTRY, NULL);
 
-	printk(KERN_EMERG MOD_NAME LOG_CLEAN);
+	debug(LOG_CLEAN);
 }
 
 module_init(ase_kmod_init);
