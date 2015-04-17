@@ -1,9 +1,7 @@
 #include "ase_kmod.h"
 
-#define DEBUG(message)											\
-	#ifdef DEBUG												\
+#define debug(message)											\
 	printk(KERN_DEBUG MOD_NAME message)						\
-	#endif														\
 
 MODULE_AUTHOR("Jean-Serge Monbailly - Arthur Dewarumez. Les RoxXoR !");
 MODULE_LICENSE("GPL");
@@ -52,7 +50,9 @@ static const struct file_operations ase_cmd = {
  * Fonction déterminant l'affichage d'un fichier du répertoire ase/
  */
 static int ase_pid_show(struct seq_file *m, void *v){
+	#ifdef DEBUG
 	debug(" entering ase_pid_show\n");
+	#endif
 	seq_printf(m, PID_FILE_HEADER, current_pid);
 	return 0;
 }
@@ -71,6 +71,7 @@ static int ase_pid_open(struct inode *inode, struct file *file){
 		printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
 		return -EINVAL;
 	}
+
 	return single_open(file, ase_pid_show, NULL);
 }
 
@@ -85,7 +86,9 @@ static void add_pid_action(const char *pid_str){
 	int i;
 	struct pid *pid_struct;
 
+	#ifdef DEBUG
 	debug(" Entering the add_pid_action function.\n");
+	#endif
 
 	/* On vérifie que la valeur écrite est bien un nombre */
 	switch(kstrtol(pid_str, 10, &pid)){
@@ -99,18 +102,18 @@ static void add_pid_action(const char *pid_str){
 
 	/* On cherche un processus correspondant à ce PID */
 	if((pid_struct = find_get_pid(pid)) != NULL){
+		#ifdef DEBUG
 		debug(LOG_ADD_PID);
+		#endif
 
 		/* On vérifie que le fichier n'existe pas avant de le créer. */
-		for(i = 0 ; i < pid_count ; i++)
-			{
-				/* Warning si il existe. */
-				if((long int)(pid_array[i]->numbers[0].nr) == pid)
-					{
-						printk(KERN_WARNING MOD_NAME " Proc file already exists.\n");
-						return;
-					}
+		for(i = 0 ; i < pid_count ; i++){
+			/* Warning si il existe. */
+			if((long int)(pid_array[i]->numbers[0].nr) == pid){
+				printk(KERN_WARNING MOD_NAME " Proc file already exists.\n");
+				return;
 			}
+		}
 		proc_create(pid_str, 0644, proc_folder, &ase_pid);
 
 		pid_array[pid_count] = pid_struct;
@@ -130,9 +133,11 @@ static int init_track_pid(struct file *file, const char __user *buff, size_t siz
 	char *tmp = kmalloc(sizeof(char) * size, GFP_KERNEL);
 	int i;
 
+	#ifdef DEBUG
 	debug(LOG_INIT_TRACK);
+	#endif
 
-	if (size > (MOD_BUF_LEN - 1)) {
+	if(size > (MOD_BUF_LEN - 1)){
 		printk(KERN_ERR MOD_NAME " Message trop grand.\n");
 		return -EINVAL;
 	}
@@ -150,7 +155,9 @@ static int init_track_pid(struct file *file, const char __user *buff, size_t siz
  * Initialisation du module, créé les fichiers/répertoires nécessaires
  */
 int ase_kmod_init(void){
+	#ifdef DEBUG
 	debug(LOG_INIT);
+	#endif
 
 	proc_folder = proc_mkdir(PROC_DIR, NULL);
 	proc_create(PROC_ENTRY, 0644, NULL, &ase_cmd);
@@ -167,7 +174,9 @@ void ase_kmod_cleanup(void){
 	remove_proc_subtree(PROC_DIR, NULL);
 	remove_proc_entry(PROC_ENTRY, NULL);
 
+	#ifdef DEBUG
 	debug(LOG_CLEAN);
+	#endif
 }
 
 module_init(ase_kmod_init);
