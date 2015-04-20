@@ -53,6 +53,8 @@ static int ase_pid_show(struct seq_file *m, void *v){
 #ifdef DEBUG
     debug(" entering ase_pid_show\n");
 #endif
+
+    /* Le seq_printf ne doit pas servir étant donné que le fichier proc n'existe pas vraiment */
     seq_printf(m, PID_FILE_HEADER, current_pid);
     return 0;
 }
