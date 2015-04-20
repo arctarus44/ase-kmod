@@ -18,10 +18,11 @@ static int init_track_pid(struct file *file, const char *data, size_t size, loff
 /**********************/
 /* Variables globales */
 /**********************/
-long current_pid;
+long current_pid; /* Utiliser pour l'ajout de pid dans la liste */
 static struct proc_dir_entry *proc_folder;
 static int pid_count = 0;
 static struct pid *pid_array[MAX_PID_HANDLE];
+static struct pid *show_pid;
 
 /*
  * Structure définisant les actions sur le fichier PROC_ENTRY du répertoire.
@@ -51,15 +52,22 @@ static const struct file_operations ase_cmd = {
  * Fonction déterminant l'affichage d'un fichier du répertoire ase/
  */
 static int ase_pid_show(struct seq_file *m, void *v){
-    struct pid *pid;
-    int i;
+
+	struct task_struct *task = pid_task(show_pid, PIDTYPE_PID);
 #ifdef DEBUG
     debug(" entering ase_pid_show\n");
 #endif
-    
+
     /* Le seq_printf ne doit pas servir étant donné que le fichier proc n'existe pas vraiment */
     seq_printf(m, PID_FILE_HEADER, current_pid);
+	seq_printf(m, "temps en espace utilisateur : %ld\n", task->utime);
+	seq_printf(m, "temps en espace noyau : %ld\n", task->stime);
+	seq_printf(m, "temps total d'éxécution : %ld\n", task->utime + task->stime);
     return 0;
+}
+
+static struct pid* retreive_pid(long pid){
+	return pid_array[0];
 }
 
 /*
@@ -67,32 +75,16 @@ static int ase_pid_show(struct seq_file *m, void *v){
  * Doit afficher des informations sur le processus qu'il représente.
  */
 static int ase_pid_open(struct inode *inode, struct file *file){
-    int i;
-
     /* On récupère le pid du fichier sur lequel on travaille */
     switch(kstrtol(file->f_path.dentry->d_iname, 10, &current_pid)){
     case -ERANGE:
-	printk(KERN_ERR MOD_NAME ERR_INIT_OVERFLOW);
-	return -ERANGE;
+		printk(KERN_ERR MOD_NAME ERR_INIT_OVERFLOW);
+		return -ERANGE;
     case -EINVAL:
-	printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
-	return -EINVAL;
+		printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
+		return -EINVAL;
     }
-    /* printk(KERN_EMERG MOD_NAME " %s\n", file->f_path.dentry->d_iname); */
-    /* for(i = 0 ; i < pid_count ; i++) */
-    /* 	{ */
-    /* 	    if(pid_array[i]->numbers[0].nr == current_pid) */
-    /* 		{ */
-    /* 		    // Traitement  */
-    /* 		    break; */
-    /* 		} */
-    /* 	} */
-
-    for(i = 0 ; i < pid_count ; i++)
-	{
-	    printk(KERN_ERR MOD_NAME " stime : %ld\n", pid_task(pid_array[i], PIDTYPE_PID)->stime);
-	    printk(KERN_ERR MOD_NAME " utime : %ld\n", pid_task(pid_array[i], PIDTYPE_PID)->utime);
-	}
+	show_pid = retreive_pid(0);
     return single_open(file, ase_pid_show, NULL);
 }
 
@@ -104,7 +96,7 @@ static int ase_pid_open(struct inode *inode, struct file *file){
  */
 static void add_pid_action(const char *pid_str){
     long pid;
-    int i;
+	int i;
     struct pid *pid_struct;
 
 #ifdef DEBUG
