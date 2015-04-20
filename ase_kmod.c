@@ -1,4 +1,5 @@
 #include "ase_kmod.h"
+#include "pid_list.h"
 
 // KERN_DEBUG ne sert à rien, la machine n'est pas configurée pour l'afficher
 #define debug(message)				\
@@ -18,11 +19,8 @@ static int init_track_pid(struct file *file, const char *data, size_t size, loff
 /**********************/
 /* Variables globales */
 /**********************/
-long current_pid; /* Utiliser pour l'ajout de pid dans la liste */
+int current_pid; /* Utiliser pour l'ajout de pid dans la liste */
 static struct proc_dir_entry *proc_folder;
-static int pid_count = 0;
-static struct pid *pid_array[MAX_PID_HANDLE];
-static struct pid *show_pid;
 
 /*
  * Structure définisant les actions sur le fichier PROC_ENTRY du répertoire.
@@ -51,23 +49,22 @@ static const struct file_operations ase_cmd = {
 /*
  * Fonction déterminant l'affichage d'un fichier du répertoire ase/
  */
-static int ase_pid_show(struct seq_file *m, void *v){
+static int ase_pid_show(struct seq_file *m, void *v)
+{
+    int stime, utime;
+    stime = get_stime(current_pid);
+    utime = get_utime(current_pid);
 
-	struct task_struct *task = pid_task(show_pid, PIDTYPE_PID);
 #ifdef DEBUG
     debug(" entering ase_pid_show\n");
 #endif
 
     /* Le seq_printf ne doit pas servir étant donné que le fichier proc n'existe pas vraiment */
     seq_printf(m, PID_FILE_HEADER, current_pid);
-	seq_printf(m, "temps en espace utilisateur : %ld\n", task->utime);
-	seq_printf(m, "temps en espace noyau : %ld\n", task->stime);
-	seq_printf(m, "temps total d'éxécution : %ld\n", task->utime + task->stime);
+    seq_printf(m, "temps en espace utilisateur : %d\n", utime);
+    seq_printf(m, "temps en espace noyau : %d\n", stime);
+    seq_printf(m, "temps total d'éxécution : %d\n", utime + stime);
     return 0;
-}
-
-static struct pid* retreive_pid(long pid){
-	return pid_array[0];
 }
 
 /*
@@ -75,16 +72,18 @@ static struct pid* retreive_pid(long pid){
  * Doit afficher des informations sur le processus qu'il représente.
  */
 static int ase_pid_open(struct inode *inode, struct file *file){
+    long tmp;
     /* On récupère le pid du fichier sur lequel on travaille */
-    switch(kstrtol(file->f_path.dentry->d_iname, 10, &current_pid)){
+    switch(kstrtol(file->f_path.dentry->d_iname, 10, &tmp)){
     case -ERANGE:
-		printk(KERN_ERR MOD_NAME ERR_INIT_OVERFLOW);
-		return -ERANGE;
+	printk(KERN_ERR MOD_NAME ERR_INIT_OVERFLOW);
+	return -ERANGE;
     case -EINVAL:
-		printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
-		return -EINVAL;
+	printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
+	return -EINVAL;
     }
-	show_pid = retreive_pid(0);
+    
+    current_pid = (int) tmp;
     return single_open(file, ase_pid_show, NULL);
 }
 
@@ -96,7 +95,6 @@ static int ase_pid_open(struct inode *inode, struct file *file){
  */
 static void add_pid_action(const char *pid_str){
     long pid;
-	int i;
     struct pid *pid_struct;
 
 #ifdef DEBUG
@@ -118,19 +116,9 @@ static void add_pid_action(const char *pid_str){
 #ifdef DEBUG
 	debug(LOG_ADD_PID);
 #endif
-
-	/* On vérifie que le fichier n'existe pas avant de le créer. */
-	for(i = 0 ; i < pid_count ; i++){
-	    /* Warning si il existe. */
-	    if((long int)(pid_array[i]->numbers[0].nr) == pid){
-		printk(KERN_WARNING MOD_NAME " Proc file already exists.\n");
-		return;
-	    }
-	}
+	// On ajoute ce PID à la liste
+	add_pid(pid_struct);
 	proc_create(pid_str, 0644, proc_folder, &ase_pid);
-
-	pid_array[pid_count] = pid_struct;
-	pid_count++;
     }
     else{
 	printk(KERN_ERR MOD_NAME ERR_INIT_NOT_PID);
