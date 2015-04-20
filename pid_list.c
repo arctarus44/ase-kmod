@@ -13,7 +13,7 @@ struct ase_pid
 struct ase_pid *head = NULL;
 
 /*
- * Créé une nouvelle structure ase_pid 
+ * Créé une nouvelle structure ase_pid
  * à partir de la structure pid passée en paramètre
  */
 static struct ase_pid * create_struct(struct pid * pid_s)
@@ -42,13 +42,15 @@ void add_pid(struct pid * pid_s)
 
     if(head == NULL)
 	{
+		printk(KERN_EMERG "LIST " "Ajout en tête\n");
 	    head = add;
 	    return;
 	}
-    
+
     tmp = head;
     while(tmp->next != NULL)
 	{
+		printk(KERN_EMERG "LIST " "Pas la fin\n");
 	    tmp = tmp->next;
 	}
 
@@ -61,8 +63,12 @@ struct ase_pid * get_struct(int pid)
 
     while(tmp != NULL)
 	{
-	    if(tmp->pid == pid)
-		return tmp;
+		printk(KERN_EMERG "LIST " "tmp->pid %d pid %d\n", tmp->pid, tmp);
+	    if(tmp->pid == pid){
+			printk(KERN_EMERG "LIST " "I find it\n");
+			return tmp;
+		}
+		printk(KERN_EMERG "LIST " "I don't find it\n");
 	}
 
     return NULL;

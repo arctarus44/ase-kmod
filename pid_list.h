@@ -12,7 +12,7 @@
 
 void add_pid(struct pid *pid_s);
 
-struct ase_pid * get_struct(int pid);
+struct ase_pid *get_struct(int pid);
 
 long get_stime(int pid);
 

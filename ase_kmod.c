@@ -52,6 +52,7 @@ static const struct file_operations ase_cmd = {
 static int ase_pid_show(struct seq_file *m, void *v)
 {
     int stime, utime;
+	printk(KERN_ERR MOD_NAME "************* CRT_PID %d\n", current_pid);
     stime = get_stime(current_pid);
     utime = get_utime(current_pid);
 
@@ -82,7 +83,7 @@ static int ase_pid_open(struct inode *inode, struct file *file){
 	printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
 	return -EINVAL;
     }
-    
+
     current_pid = (int) tmp;
     return single_open(file, ase_pid_show, NULL);
 }
