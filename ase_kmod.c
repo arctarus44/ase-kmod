@@ -1,5 +1,6 @@
 #include "ase_kmod.h"
 
+// KERN_DEBUG ne sert à rien, la machine n'est pas configurée pour l'afficher
 #define debug(message)				\
     printk(KERN_EMERG MOD_NAME message)		\
 
@@ -50,10 +51,12 @@ static const struct file_operations ase_cmd = {
  * Fonction déterminant l'affichage d'un fichier du répertoire ase/
  */
 static int ase_pid_show(struct seq_file *m, void *v){
+    struct pid *pid;
+    int i;
 #ifdef DEBUG
     debug(" entering ase_pid_show\n");
 #endif
-
+    
     /* Le seq_printf ne doit pas servir étant donné que le fichier proc n'existe pas vraiment */
     seq_printf(m, PID_FILE_HEADER, current_pid);
     return 0;
@@ -64,6 +67,8 @@ static int ase_pid_show(struct seq_file *m, void *v){
  * Doit afficher des informations sur le processus qu'il représente.
  */
 static int ase_pid_open(struct inode *inode, struct file *file){
+    int i;
+
     /* On récupère le pid du fichier sur lequel on travaille */
     switch(kstrtol(file->f_path.dentry->d_iname, 10, &current_pid)){
     case -ERANGE:
@@ -73,7 +78,21 @@ static int ase_pid_open(struct inode *inode, struct file *file){
 	printk(KERN_ERR MOD_NAME ERR_INIT_NOT_INT);
 	return -EINVAL;
     }
+    /* printk(KERN_EMERG MOD_NAME " %s\n", file->f_path.dentry->d_iname); */
+    /* for(i = 0 ; i < pid_count ; i++) */
+    /* 	{ */
+    /* 	    if(pid_array[i]->numbers[0].nr == current_pid) */
+    /* 		{ */
+    /* 		    // Traitement  */
+    /* 		    break; */
+    /* 		} */
+    /* 	} */
 
+    for(i = 0 ; i < pid_count ; i++)
+	{
+	    printk(KERN_ERR MOD_NAME " stime : %ld\n", pid_task(pid_array[i], PIDTYPE_PID)->stime);
+	    printk(KERN_ERR MOD_NAME " utime : %ld\n", pid_task(pid_array[i], PIDTYPE_PID)->utime);
+	}
     return single_open(file, ase_pid_show, NULL);
 }
 
