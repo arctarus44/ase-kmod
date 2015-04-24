@@ -3,10 +3,10 @@
 /* Définition de la structure */
 struct ase_pid
 {
-    int pid;
-    struct pid *pid_s;
-    struct task_struct * task;
-    struct ase_pid * next;
+	int pid;
+	struct pid *pid_s;
+	struct task_struct * task;
+	struct ase_pid * next;
 };
 
 /* Début de la liste */
@@ -18,15 +18,15 @@ struct ase_pid *head = NULL;
  */
 static struct ase_pid * create_struct(struct pid * pid_s)
 {
-    struct ase_pid * new;
+	struct ase_pid * new;
 
-    new = (struct ase_pid *) kmalloc(sizeof(struct ase_pid), GFP_KERNEL);
-    new->pid_s = pid_s;
-    new->task = pid_task(pid_s, PIDTYPE_PID);
-    new->pid = pid_s->numbers[0].nr;
-    new->next = NULL;
+	new = (struct ase_pid *) kmalloc(sizeof(struct ase_pid), GFP_KERNEL);
+	new->pid_s = pid_s;
+	new->task = pid_task(pid_s, PIDTYPE_PID);
+	new->pid = pid_s->numbers[0].nr;
+	new->next = NULL;
 
-    return new;
+	return new;
 }
 
 /*
@@ -35,43 +35,43 @@ static struct ase_pid * create_struct(struct pid * pid_s)
  */
 void add_pid(struct pid * pid_s)
 {
-    struct ase_pid * add;
-    struct ase_pid * tmp;
+	struct ase_pid * add;
+	struct ase_pid * tmp;
 
-    add = create_struct(pid_s);
+	add = create_struct(pid_s);
 
-    if(head == NULL)
-	{
-		printk(KERN_EMERG "LIST " "Ajout en tête\n");
-	    head = add;
-	    return;
-	}
+	if(head == NULL)
+		{
+			printk(KERN_EMERG "LIST " "Ajout en tête\n");
+			head = add;
+			return;
+		}
 
-    tmp = head;
-    while(tmp->next != NULL)
-	{
-		printk(KERN_EMERG "LIST " "Pas la fin\n");
-	    tmp = tmp->next;
-	}
+	tmp = head;
+	while(tmp->next != NULL)
+		{
+			printk(KERN_EMERG "LIST " "Pas la fin\n");
+			tmp = tmp->next;
+		}
 
-    tmp->next = add;
+	tmp->next = add;
 }
 
 struct ase_pid * get_struct(int pid)
 {
-    struct ase_pid * tmp = head;
+	struct ase_pid * tmp = head;
 
-    while(tmp != NULL)
-	{
-		printk(KERN_EMERG "LIST " "tmp->pid %d pid %d\n", tmp->pid, tmp);
-	    if(tmp->pid == pid){
-			printk(KERN_EMERG "LIST " "I find it\n");
-			return tmp;
+	while(tmp != NULL)
+		{
+			if(tmp->pid == pid){
+				printk(KERN_EMERG "LIST " "I find it\n");
+				return tmp;
+			}
+			tmp = tmp->next;
+			printk(KERN_EMERG "LIST " "I don't find it\n");
 		}
-		printk(KERN_EMERG "LIST " "I don't find it\n");
-	}
 
-    return NULL;
+	return NULL;
 }
 
 /*
@@ -80,15 +80,15 @@ struct ase_pid * get_struct(int pid)
  */
 long get_stime(int pid)
 {
-    struct ase_pid * tmp = get_struct(pid);
+	struct ase_pid * tmp = get_struct(pid);
 
-    if(tmp == NULL)
-	{
-	    /* Ne devrait pas arriver */
-	    return -1;
-	}
+	if(tmp == NULL)
+		{
+			/* Ne devrait pas arriver */
+			return -1;
+		}
 
-    return tmp->task->stime;
+	return tmp->task->stime;
 }
 
 
@@ -98,13 +98,13 @@ long get_stime(int pid)
  */
 long get_utime(int pid)
 {
-    struct ase_pid * tmp = get_struct(pid);
+	struct ase_pid * tmp = get_struct(pid);
 
-    if(tmp == NULL)
-	{
-	    /* Ne devrait pas arriver */
-	    return -1;
-	}
+	if(tmp == NULL)
+		{
+			/* Ne devrait pas arriver */
+			return -1;
+		}
 
-    return tmp->task->utime;
+	return tmp->task->utime;
 }

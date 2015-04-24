@@ -7,8 +7,8 @@ ifneq ($(KERNELRELEASE),)
 # Otherwise we were called directly from the command
 # line; invoke the kernel build system.
 else
-	KERNELDIR ?= /gfs/monbailly/linux-3.19.1
-	BUILDDIR  ?= /gfs/monbailly/build/kvm32
+	KERNELDIR ?= /home/arctarus/Documents/fac/master/s2/ase++/linux3.19/linux-3.19.1
+	BUILDDIR  ?= /home/arctarus/Documents/fac/master/s2/ase++/linux3.19/build/kvm32
 	PWD := $(shell pwd)
 default:
 	$(MAKE) -C $(KERNELDIR) O=$(BUILDDIR) M=$(PWD) modules
